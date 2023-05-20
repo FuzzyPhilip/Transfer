@@ -82,10 +82,11 @@ partial class Program
 		// ... add globals...
 		rootCommand.AddGlobalOption (timeout);
 		rootCommand.AddGlobalOption (measured);
+		rootCommand.AddGlobalOption (port);
 
 		// ... set handlers...
-		toCommand.SetHandler (ToCommand, timeout, measured, repeat, file, includeFileName, testSize, recipient);
-		fromCommand.SetHandler (FromCommand, timeout, measured, fileName, maxSize, sender);
+		toCommand.SetHandler (ToCommand, timeout, measured, port, repeat, file, includeFileName, testSize, recipient);
+		fromCommand.SetHandler (FromCommand, timeout, measured, port, fileName, maxSize, sender);
 
 		// ... and let the magic happen here!
 		return await rootCommand.InvokeAsync (args);

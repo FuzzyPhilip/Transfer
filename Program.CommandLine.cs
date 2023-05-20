@@ -26,6 +26,11 @@ partial class Program
 		description: "Set false to not show timing and performance data",
 		getDefaultValue: () => true);
 
+	static readonly Option<int> port = new (
+		aliases: new [] { "--port", "-p", "/p" },
+		description: "Specifies the port to listen or send on",
+		getDefaultValue: () => 8888);
+
 	#endregion Global options
 
 	#region Send stuff
