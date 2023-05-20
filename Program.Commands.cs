@@ -1,7 +1,7 @@
 ﻿namespace Beinggs.Transfer;
 
 
-// test handlers and helpers
+// command handlers and helpers
 partial class Program
 {
 	#region Send

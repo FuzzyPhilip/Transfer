@@ -4,23 +4,7 @@
 namespace Beinggs.Transfer;
 
 
-/// <summary>
-/// Transfers files or test data.
-/// </summary>
-/// <remarks>
-/// Example syntax (implemented using <see cref="System.CommandLine"/> functionality):
-/// <code>
-/// transfer [--timeout=30] [--measured=true] send [--repeat=false] file fileName [--include-filename=true] to anyone
-/// transfer [--timeout=30] [--measured=true] send [--repeat=false] test [--size=10] to clientMachine
-/// transfer [--timeout=30] [--measured=true] receive file [fileName] from serverMachine
-/// transfer [--timeout=30] [--measured=true] receive test [--max-size=X] from serverMachine
-/// 
-/// where:
-///   [] indicates an optional option
-///   =value indicates the default value for an optional option
-///   {x || y} indicates either x or y must be present
-/// </code>
-/// </remarks>
+// see README.md for details
 partial class Program
 {
 	/// <summary>

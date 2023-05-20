@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Transfer": {
-      "commandName": "Project",
-      "commandLineArgs": "send /r file Transfer.runtimeconfig.json /f=false to anyone"
-    }
-  }
-}
