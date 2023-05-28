@@ -7,14 +7,44 @@ namespace Beinggs.Transfer;
 // command line definitions: Commands, Arguments and Options
 partial class Program
 {
-	#region Constants
+	#region Helpers
 
-	const string ReceivedFileName = "transfer.dat";
-	const string FileNameHeader = "filename:";
+	enum Verbosity
+	{
+		Quiet,
+		Minimal,
+		Normal,
+		Detailed,
+		Diagnostic
+	}
 
-	#endregion Constants
+	#endregion Helpers
+
+	#region Fields
+
+	// constants
+	public const string DefaultFileName = "transfer.dat";
+	public const string FileNameHeader = "filename";
+	public const string Anyone = "anyone";
+
+	public const int MinTestSize = 1; // MB
+	public const int MaxTestSize = 1024; // MB
+	public const int DefTestSize = 10; // MB
+
+	// globals
+	public static LogLevel LogLevel;
+	public static int Timeout;
+	public static bool Measured;
+	public static int Port;
+
+	#endregion Fields
 
 	#region Global options
+
+	static readonly Option<Verbosity?> verbosity = new (
+		aliases: new [] { "--verbosity", "-v", "/v" },
+		description: "Level of detail in output messages",
+		getDefaultValue: () => Verbosity.Quiet);
 
 	static readonly Option<int> timeout = new (
 		aliases: new[] { "--timeout", "-t", "/t" },
@@ -42,21 +72,21 @@ partial class Program
 
 	static readonly Argument<FileInfo?> file = new (
 		name: "file",
-		description: "The file to send");
+		description: "The name of the file to send");
 
 	static readonly Option<bool> includeFileName = new (
 		aliases: new[] { "--include-filename", "-f", "/f" },
-		description: $"Set false to send raw data with no \"{FileNameHeader}:name\\0\" (as UTF8 bytes) header",
+		description: $"Set false to send raw data with no \"{FileNameHeader}:name\\n\" (as UTF8 bytes) header",
 		getDefaultValue: () => true);
 
 	static readonly Argument<string> recipient = new (
 			name: "recipient",
-			description: "Recipient machine, IP address, or 'anyone' to allow any remote client to connect");
+			description: $"Recipient machine, IP address, or \"{Anyone}\" to allow any remote client to connect");
 
 	static readonly Option<int> testSize = new (
 		aliases: new[] { "--size", "-s", "/s" },
-		description: "Test data size, in MB",
-		getDefaultValue: () => 10);
+		description: $"Test data size, in MB (between {MinTestSize} and {MaxTestSize})",
+		getDefaultValue: () => DefTestSize);
 
 	static readonly Command toCommand = new (
 		name: "to",
@@ -70,13 +100,15 @@ partial class Program
 	#region Receive stuff
 
 	static readonly Argument<string?> fileName = new (
-		name: "filename",
-		description: $"The name of the file in which to save the received file data",
-		getDefaultValue: () => ReceivedFileName);
+		name: "fileName",
+		description: "The name of the file to receive",
+		getDefaultValue: () => DefaultFileName);
 
-	static readonly Option<int?> maxSize = new (
+	static readonly Option<int> maxSize = new (
 		name: "--max-size",
-		description: "Sets the maximum amount of data to receive, in MB");
+		description: "Sets the maximum amount of data to receive, in MB, " +
+				"or omit (or set to zero) to receive all sent data",
+		getDefaultValue: () => 0);
 
 	static readonly Argument<string> sender = new (
 		name: "sender",

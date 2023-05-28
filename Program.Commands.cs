@@ -1,4 +1,7 @@
-﻿namespace Beinggs.Transfer;
+﻿using Beinggs.Transfer.Extensions;
+
+
+namespace Beinggs.Transfer;
 
 
 // command handlers and helpers
@@ -6,70 +9,108 @@ partial class Program
 {
 	#region Send
 
-	static void ToCommand (int timeout, bool measured, int port, bool repeat,
-			FileInfo? file, bool includeFileName, int testSize, string recipient)
+	static async Task ToCommand (Verbosity? verbosity, int timeout, bool measured, int port,
+			bool repeat, FileInfo? file, bool includeFileName, int testSize, string recipient)
 	{
+		// can't bind globals to root command, so have to handle them in _every_ command :-/
+		SetGlobals (verbosity, timeout, measured, port);
+
 		if (file is not null)
-			SendFile (timeout, measured, port, repeat, file, includeFileName, recipient);
+			await SendFile (repeat, file, includeFileName, recipient);
 		else
-			SendTest (timeout, measured, port, repeat, testSize, recipient);
+			await SendTest (repeat, testSize, recipient);
 	}
 
-	static void SendFile (int timeout, bool measured, int port, bool repeat,
-			FileInfo file, bool includeFileName, string recipient)
+	static async Task SendFile (bool repeat, FileInfo file, bool includeFileName, string recipient)
 	{
-		Console.WriteLine ($"Sending {file.Name} " +
-				$"to {recipient} {SendInfo (timeout, measured, port, repeat, includeFileName)}:");
+		$"Sending file {file.Name} to {recipient} {SendFileInfo (repeat, includeFileName)}:".Log();
 
-		File.ReadLines (file.FullName).ToList()
-			.ForEach (Console.WriteLine);
+		await new Sender (repeat).SendFileAsync (file, includeFileName, recipient);
 	}
 
-	static void SendTest (int timeout, bool measured, int port, bool repeat,
-			int testSize, string recipient)
-		=> Console.WriteLine ($"Sending {testSize} MB " +
-				$"to {recipient} {SendInfo (timeout, measured, port, repeat)}");
+	static async Task SendTest (bool repeat, int testSize, string recipient)
+	{
+		$"Sending test of {testSize} MB to {recipient} {SendTestInfo (repeat)}".Log();
+
+		await new Sender (repeat).SendTestAsync (testSize, recipient);
+	}
 
 	#endregion Send
 
 	#region Receive
 
-	static void FromCommand (int timeout, bool measured, int port,
-			string? fileName, int? maxSize, string sender)
+	static async Task FromCommand (Verbosity? verbosity, int timeout, bool measured, int port,
+			string? fileName, int maxSize, string sender)
 	{
+		// can't bind globals to root command, so have to handle them in _every_ command :-/
+		SetGlobals (verbosity, timeout, measured, port);
+
 		if (fileName is not null)
-			ReceiveFile (timeout, measured, port, fileName, sender);
+			await ReceiveFile (new FileInfo (fileName), sender);
 		else
-			ReceiveTest (timeout, measured, port, maxSize, sender);
+			await ReceiveTest (maxSize, sender);
 	}
 
-	static void ReceiveFile (int timeout, bool measured, int port, string fileName, string sender)
-		=> Console.WriteLine ($"Receiving file {fileName} " +
-				$"from {sender} {ReceiveInfo (timeout, measured, port)}");
+	static async Task ReceiveFile (FileInfo file, string sender)
+	{
+		$"Receiving file {file.Name} from {sender} {ReceiveInfo()}...".Log();
 
-	static void ReceiveTest (int timeout, bool measured, int port, int? maxSize, string sender)
-		=> Console.WriteLine ($"Receiving {(maxSize > 0 ? $"up to {maxSize} MB of " : "")}test data " +
-				$"from {sender} {ReceiveInfo (timeout, measured, port)}");
+		await new Receiver().ReceiveFileAsync (file, sender);
+	}
+
+	static async Task ReceiveTest (int maxSize, string sender)
+	{
+		$"Receiving {(maxSize > 0 ? $"up to {maxSize} MB of " : "")}test data from {sender} {ReceiveInfo()}...".Log();
+
+		await new Receiver().ReceiveTestAsync (maxSize, sender);
+	}
 
 	#endregion Receive
 
 	#region Helpers
 
-	static string SendInfo (int timeout, bool measured, int port, bool repeat, bool? includeFileName = null)
+	static void SetGlobals (Verbosity? verbosity, int timeout, bool measured, int port)
+	{
+		SetLogLevel (verbosity);
+		Timeout = timeout;
+		Measured = measured;
+		Port = port;
+	}
+
+	static void SetLogLevel (Verbosity? verbosity)
+		=> LogLevel = verbosity switch
+		{
+			Verbosity.Quiet or Verbosity.Minimal => LogLevel.Quiet,
+			Verbosity.Normal => LogLevel.Info,
+			Verbosity.Detailed or Verbosity.Diagnostic or null => LogLevel.Verbose,
+			_ => LogLevel.Info
+		};
+
+	static string SendFileInfo (bool repeat, bool includeFileName)
 		=> "(" +
-			$"timeout: {timeout}" +
-			$"; {(measured ? "" : "not ") + "measured"}" +
-			$"; port: {port}" +
+			$"log level: {LogLevel}" +
+			$"; timeout: {Timeout}" +
+			$"; {(Measured ? "" : "not ") + "measured"}" +
+			$"; port: {Port}" +
 			$"; {(repeat ? "" : "not ") + "repeating"}" +
-			(includeFileName is null ? "" :
-					$"; {(includeFileName.Value ? "" : "not ") + "including file name"}") +
+			$"; {(includeFileName ? "" : "not ") + "including file name"}" +
 			")";
 
-	static string ReceiveInfo (int timeout, bool measured, int port)
+	static string SendTestInfo (bool repeat)
 		=> "(" +
-			$"timeout: {timeout}" +
-			$"; {(measured ? "" : "not ") + "measured"}" +
-			$"; port: {port}" +
+			$"log level: {LogLevel}" +
+			$"; timeout: {Timeout}" +
+			$"; {(Measured ? "" : "not ") + "measured"}" +
+			$"; port: {Port}" +
+			$"; {(repeat ? "" : "not ") + "repeating"}" +
+			")";
+
+	static string ReceiveInfo()
+		=> "(" +
+			$"log level: {LogLevel}" +
+			$"; timeout: {Timeout}" +
+			$"; {(Measured ? "" : "not ") + "measured"}" +
+			$"; port: {Port}" +
 			")";
 
 	#endregion Helpers

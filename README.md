@@ -52,8 +52,8 @@ A recipient can be a specific client machine name or IP address or the name `any
 case connects are accepted from any client.
 
 The `--include-filename` option for the `send file` command, which is on by default, prepends the
-string `filename:name\0`, where `name` is the file's name, which is terminiated with a single
-`null` byte. The `filename` header uses UTF8 encoding.
+'header' string `filename:name\n`, where `name` is the file's name, which is terminiated with a
+newline. The `filename` header uses UTF8 encoding.
 
 The `receive file` command looks for the `filename` header in the incoming file data and
 automatically creates the file (if it doesn't already exist) with that name. If the incoming file

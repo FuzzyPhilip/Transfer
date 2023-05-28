@@ -80,13 +80,20 @@ partial class Program
 		receiveTestCommand.AddAlias ("t");
 
 		// ... add globals...
+		verbosity.Arity = ArgumentArity.ZeroOrOne;
+		rootCommand.AddGlobalOption (verbosity);
+
 		rootCommand.AddGlobalOption (timeout);
 		rootCommand.AddGlobalOption (measured);
 		rootCommand.AddGlobalOption (port);
 
 		// ... set handlers...
-		toCommand.SetHandler (ToCommand, timeout, measured, port, repeat, file, includeFileName, testSize, recipient);
-		fromCommand.SetHandler (FromCommand, timeout, measured, port, fileName, maxSize, sender);
+		// rootCommand.SetHandler (SetLogLevel, verbosity); // GRR! This should be supported, at least for globals! :-/
+		toCommand.SetHandler (ToCommand, verbosity, timeout, measured, port, repeat,
+				file, includeFileName, testSize, recipient);
+
+		fromCommand.SetHandler (FromCommand, verbosity, timeout, measured, port,
+				fileName, maxSize, sender);
 
 		// ... and let the magic happen here!
 		return await rootCommand.InvokeAsync (args);
