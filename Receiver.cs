@@ -4,7 +4,6 @@ using System.Text;
 
 using Beinggs.Transfer.Extensions;
 
-using Transfer.Extensions;
 
 namespace Beinggs.Transfer;
 
@@ -12,7 +11,8 @@ namespace Beinggs.Transfer;
 class Receiver
 {
 	FileInfo _file = default!;
-	int _maxSize;
+	int _maxBytes;
+	int _maxSecs;
 
 	public Task ReceiveFileAsync (FileInfo file, string sender)
 	{
@@ -27,12 +27,16 @@ class Receiver
 		return Receive (sender);
 	}
 
-	public Task ReceiveTestAsync (int maxSize, string sender)
+	public Task ReceiveTestAsync (int maxSize, int maxTime, string sender)
 	{
 		if (maxSize is < 0)
 			throw new InvalidOperationException ("A zero or positive maximum size must be specified");
 
-		_maxSize = maxSize;
+		if (maxTime is < 0)
+			throw new InvalidOperationException ("A zero or positive maximum time must be specified");
+
+		_maxBytes = maxSize;
+		_maxSecs = maxTime;
 
 		return Receive (sender);
 	}
@@ -46,11 +50,13 @@ class Receiver
 		{
 			using TcpClient client = new (sender, Program.Port);
 
+			$"\nConnected to {sender}:{Program.Port}; receiving data...".Log (LogLevel.Info);
+
 			using var input = client.GetStream();
 			using var output = await GetOutputStream (input);
 
 			// copy the stream to output and time it
-			var (milliseconds, bytes) = await input.CopyToWithTimingAsync (output);
+			var (milliseconds, bytes) = await input.CopyToWithTimingAsync (output, _maxBytes, _maxSecs);
 
 			var bits = bytes * 8f;
 			var secs = milliseconds / 1000f;
@@ -75,7 +81,7 @@ class Receiver
 			if (_file is not null)
 				receivedMsg += $" into {_file.Name}";
 
-			receivedMsg.Log();
+			receivedMsg.Log (LogLevel.Quiet);
 		}
 		catch (Exception ex)
 		{
@@ -93,7 +99,7 @@ class Receiver
 					out var fileName, out var lineRead))
 			{
 				// if no filename given on cmd line, use the one from the header
-				if (_file.Name == Program.DefaultFileName)
+				if (_file.Name == Program.DefaultReceiveFileName)
 				{
 #if DEBUG
 					fileName = "TEST." + fileName;

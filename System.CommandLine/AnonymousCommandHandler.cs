@@ -6,66 +6,66 @@ using System.CommandLine.Invocation;
 namespace System.CommandLine;
 
 
-class AnonymousCommandHandler : ICommandHandler
+class AnonymousCommandHandler: ICommandHandler
 {
-    #region Fields
+	#region Fields
 
-    readonly Func<InvocationContext, Task>? _asyncHandle;
-    readonly Action<InvocationContext>? _syncHandle;
+	readonly Func<InvocationContext, Task>? _asyncHandle;
+	readonly Action<InvocationContext>? _syncHandle;
 
-    #endregion Fields
+	#endregion Fields
 
-    #region Construction
+	#region Construction
 
-    public AnonymousCommandHandler(Func<InvocationContext, Task> handle)
-        => _asyncHandle = handle ?? throw new ArgumentNullException(nameof(handle));
+	public AnonymousCommandHandler (Func<InvocationContext, Task> handle)
+		=> _asyncHandle = handle ?? throw new ArgumentNullException (nameof (handle));
 
-    public AnonymousCommandHandler(Action<InvocationContext> handle)
-        => _syncHandle = handle ?? throw new ArgumentNullException(nameof(handle));
+	public AnonymousCommandHandler (Action<InvocationContext> handle)
+		=> _syncHandle = handle ?? throw new ArgumentNullException (nameof (handle));
 
-    #endregion Construction
+	#endregion Construction
 
-    #region ICommandHandler implementation
+	#region ICommandHandler implementation
 
-    public int Invoke(InvocationContext context)
-    {
-        if (_syncHandle is not null)
-        {
-            _syncHandle(context);
+	public int Invoke (InvocationContext context)
+	{
+		if (_syncHandle is not null)
+		{
+			_syncHandle (context);
 
-            return context.ExitCode;
-        }
+			return context.ExitCode;
+		}
 
-        return syncUsingAsync(context);
+		return syncUsingAsync (context);
 
-        // kept in a separate method to avoid JITting
-        int syncUsingAsync(InvocationContext context)
-            => InvokeAsync(context).GetAwaiter().GetResult();
-    }
+		// kept in a separate method to avoid JITting
+		int syncUsingAsync (InvocationContext context)
+			=> InvokeAsync (context).GetAwaiter().GetResult();
+	}
 
-    public async Task<int> InvokeAsync(InvocationContext context)
-    {
-        if (_syncHandle is not null)
-            return Invoke(context);
+	public async Task<int> InvokeAsync (InvocationContext context)
+	{
+		if (_syncHandle is not null)
+			return Invoke (context);
 
-        object returnValue = _asyncHandle!(context);
+		object returnValue = _asyncHandle! (context);
 
-        return returnValue switch
-        {
-            Task<int> exitCodeTask => await exitCodeTask,
-            Task task => await getExitCode(task),
-            int exitCode => exitCode,
-            _ => context.ExitCode
-        };
+		return returnValue switch
+		{
+			Task<int> exitCodeTask => await exitCodeTask,
+			Task task => await getExitCode (task),
+			int exitCode => exitCode,
+			_ => context.ExitCode
+		};
 
-        // local helper
-        async Task<int> getExitCode(Task task)
-        {
-            await task;
+		// local helper
+		async Task<int> getExitCode (Task task)
+		{
+			await task;
 
-            return context.ExitCode;
-        }
-    }
+			return context.ExitCode;
+		}
+	}
 
-    #endregion ICommandHandler implementation
+	#endregion ICommandHandler implementation
 }

@@ -14,7 +14,7 @@ partial class Program
 	/// <returns></returns>
 	static async Task<int> Main (string[] args)
 	{
-		// as commands can't be declared with aliases, we have to declare them here and add aliases after <grr!>
+		// as commands can't be declared with aliases, we have to declare them here and add aliases later <grr!>
 		Command sendCommand;
 		Command sendFileCommand;
 		Command sendTestCommand;
@@ -30,22 +30,22 @@ partial class Program
 				name: "send",
 				description: "Send a file or test data")
 			{
-				repeat,
+				optRepeat,
 
 				(sendFileCommand = new (
 					name: "file",
 					description: "Send a file")
 				{
-					file,
-					includeFileName,
-					toCommand
+					argFile,
+					optIncludeFileName,
+					cmdTo
 				}),
 				(sendTestCommand = new (
 					name: "test",
 					description: "Send test data")
 				{
-					testSize,
-					toCommand
+					optTestSize,
+					cmdTo
 				})
 			}),
 
@@ -57,15 +57,16 @@ partial class Program
 					name: "file",
 					description: "Receive a file")
 				{
-					fileName,
-					fromCommand
+					argFileName,
+					cmdFrom
 				}),
 				(receiveTestCommand = new (
 					name: "test",
 					description: "Receive test data")
 				{
-					maxSize,
-					fromCommand
+					optMaxSize,
+					optMaxTime,
+					cmdFrom
 				})
 			})
 		};
@@ -80,22 +81,22 @@ partial class Program
 		receiveTestCommand.AddAlias ("t");
 
 		// ... add globals...
-		verbosity.Arity = ArgumentArity.ZeroOrOne;
-		rootCommand.AddGlobalOption (verbosity);
+		globalOptVerbosity.Arity = ArgumentArity.ZeroOrOne;
+		rootCommand.AddGlobalOption (globalOptVerbosity);
 
-		rootCommand.AddGlobalOption (timeout);
-		rootCommand.AddGlobalOption (measured);
-		rootCommand.AddGlobalOption (port);
+		rootCommand.AddGlobalOption (globalOptTimeout);
+		rootCommand.AddGlobalOption (globalOptMeasured);
+		rootCommand.AddGlobalOption (globalOptPort);
 
 		// ... set handlers...
 		// rootCommand.SetHandler (SetLogLevel, verbosity); // GRR! This should be supported, at least for globals! :-/
-		toCommand.SetHandler (ToCommand, verbosity, timeout, measured, port, repeat,
-				file, includeFileName, testSize, recipient);
+		cmdTo.SetHandler (ToCommand, globalOptVerbosity, globalOptTimeout, globalOptMeasured, globalOptPort, optRepeat,
+				argFile, optIncludeFileName, optTestSize, argRecipient);
 
-		fromCommand.SetHandler (FromCommand, verbosity, timeout, measured, port,
-				fileName, maxSize, sender);
+		cmdFrom.SetHandler (FromCommand, globalOptVerbosity, globalOptTimeout, globalOptMeasured, globalOptPort,
+				argFileName, optMaxSize, optMaxTime, argSender);
 
-		// ... and let the magic happen here!
+		// ... and let the magic happen!
 		return await rootCommand.InvokeAsync (args);
 	}
 }

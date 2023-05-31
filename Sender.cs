@@ -62,28 +62,30 @@ class Sender
 
 				// if it's not who we're expecting, skip it
 				if (recipient != Program.Anyone && address != recipient)
-					$"Connection attempted from invalid client ({address}); dropped".Log (LogLevel.Warning);
+					$"\nConnection attempted from invalid client ({address}); dropped".Log (LogLevel.Warning);
 				else // hand it off and wait for next, if repeating
-					await SendData (client);
+					await SendData (client, address);
 			}
 			while (_repeat);
 		}
 		catch (Exception ex)
 		{
-			$"Failed to send due to: {ex.Message}".Log (LogLevel.Error);
+			$"Failed to send data due to: {ex.Message}".Log (LogLevel.Error);
 		}
 	}
 
-	async Task SendData (TcpClient client)
+	async Task SendData (TcpClient client, string address)
 	{
 		try
 		{
+			$"\nConnected to {address}:{Program.Port}; sending data...".Log (LogLevel.Info);
+
 			using var output = client.GetStream();
 			using var input = await GetInputStream (output);
 
 			await input.CopyToAsync (output);
 
-			$"Successfully sent data".Log();
+			$"Successfully sent data".Log (LogLevel.Quiet);
 		}
 		catch (Exception ex)
 		{

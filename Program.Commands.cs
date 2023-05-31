@@ -40,7 +40,7 @@ partial class Program
 	#region Receive
 
 	static async Task FromCommand (Verbosity? verbosity, int timeout, bool measured, int port,
-			string? fileName, int maxSize, string sender)
+			string? fileName, int maxSize, int maxTime, string sender)
 	{
 		// can't bind globals to root command, so have to handle them in _every_ command :-/
 		SetGlobals (verbosity, timeout, measured, port);
@@ -48,7 +48,7 @@ partial class Program
 		if (fileName is not null)
 			await ReceiveFile (new FileInfo (fileName), sender);
 		else
-			await ReceiveTest (maxSize, sender);
+			await ReceiveTest (maxSize, maxTime, sender);
 	}
 
 	static async Task ReceiveFile (FileInfo file, string sender)
@@ -58,11 +58,11 @@ partial class Program
 		await new Receiver().ReceiveFileAsync (file, sender);
 	}
 
-	static async Task ReceiveTest (int maxSize, string sender)
+	static async Task ReceiveTest (int maxSize, int maxTime, string sender)
 	{
 		$"Receiving {(maxSize > 0 ? $"up to {maxSize} MB of " : "")}test data from {sender} {ReceiveInfo()}...".Log();
 
-		await new Receiver().ReceiveTestAsync (maxSize, sender);
+		await new Receiver().ReceiveTestAsync (maxSize, maxTime, sender);
 	}
 
 	#endregion Receive
@@ -82,7 +82,7 @@ partial class Program
 		{
 			Verbosity.Quiet or Verbosity.Minimal => LogLevel.Quiet,
 			Verbosity.Normal => LogLevel.Info,
-			Verbosity.Detailed or Verbosity.Diagnostic or null => LogLevel.Verbose,
+			Verbosity.Detailed or Verbosity.Diagnostic => LogLevel.Verbose,
 			_ => LogLevel.Info
 		};
 
