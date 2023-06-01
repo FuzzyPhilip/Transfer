@@ -43,39 +43,6 @@ public static class StringExtensions
 	/// Converts this string to a UTF8 byte array.
 	/// </summary>
 	/// <param name="s">The string to convert.</param>
-	public static byte[] ToUtf8 (this string s)
+	public static byte[] ToUtf8Bytes (this string s)
 		=> Encoding.UTF8.GetBytes (s);
-
-	/// <summary>
-	/// Logs this string using <see cref="LogLevel.Info"/>.
-	/// </summary>
-	/// <param name="message">The message to log.</param>
-	public static void Log (this string message)
-		=> Log (message, LogLevel.Info);
-
-	/// <summary>
-	/// Logs this string using the given log level.
-	/// </summary>
-	/// <remarks>
-	/// As <see cref="LogLevel.Error"/> is the lowest log level, errors will always be logged.
-	/// <para>
-	/// 
-	/// </para>
-	/// </remarks>
-	/// <param name="message">The message to log.</param>
-	/// <param name="level">The <see cref="LogLevel"/> to use.</param>
-	public static void Log (this string message, LogLevel level)
-	{
-		if (level == LogLevel.Error)
-		{
-			Console.Error.WriteLine ($"Error: {message}");
-		}
-		else if (level <= Program.LogLevel)
-		{
-			if (level == LogLevel.Warning)
-				Console.WriteLine ($"Warning: {message}");
-			else
-				Console.WriteLine (message);
-		}
-	}
 }

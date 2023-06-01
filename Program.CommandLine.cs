@@ -1,5 +1,7 @@
 ﻿using System.CommandLine;
 
+using Beinggs.Transfer.Logging;
+
 
 namespace Beinggs.Transfer;
 
@@ -7,35 +9,47 @@ namespace Beinggs.Transfer;
 // command line definitions: Commands, Arguments and Options
 partial class Program
 {
-	#region Helpers
-
-	enum Verbosity
-	{
-		Quiet,
-		Minimal,
-		Normal,
-		Detailed,
-		Diagnostic
-	}
-
-	#endregion Helpers
-
 	#region Fields
 
-	// constants
+	/// <summary>
+	/// Defines the default received ffile name (if the <c>includeFileName</c> option isn't specified).
+	/// </summary>
 	public const string DefaultReceiveFileName = "transfer.dat";
+
+	/// <summary>
+	/// Defines the header key for the filename header, if provided.
+	/// </summary>
 	public const string FileNameHeader = "filename";
+
+	/// <summary>
+	/// Defines the 'anyone' string to specify sending/receiving to/from anyone.
+	/// </summary>
 	public const string Anyone = "anyone";
 
+	/// <summary>
+	/// Defines the minimum test size option value, in MB.
+	/// </summary>
 	public const int MinTestSize = 1; // MB
+
+	/// <summary>
+	/// Defines the maximum test size option value, in MB.
+	/// </summary>
 	public const int MaxTestSize = 1024; // MB
+
+	/// <summary>
+	/// Defines the default test size option value, in MB.
+	/// </summary>
 	public const int DefTestSize = 10; // MB
 
-	// globals
-	public static LogLevel LogLevel;
-	public static int Timeout;
-	public static bool Measured;
-	public static int Port;
+	/// <summary>
+	/// Indicates whether performance should be measured when receiving test data or a file.
+	/// </summary>
+	public static bool Measured { get; set; }
+
+	/// <summary>
+	/// Profides the port value to connect to or listen on.
+	/// </summary>
+	public static int Port { get; set; }
 
 	#endregion Fields
 
@@ -44,17 +58,12 @@ partial class Program
 	static readonly Option<Verbosity?> globalOptVerbosity = new (
 		aliases: new [] { "--verbosity", "-v", "/v" },
 		description: "Level of detail in output messages",
-		getDefaultValue: () => Verbosity.Detailed);
+		getDefaultValue: () => Verbosity.Normal);
 
-	static readonly Option<int> globalOptTimeout = new (
-		aliases: new[] { "--timeout", "-t", "/t" },
-		description: "Timeout in seconds for any send or receive operation, or 0 for no timeout",
-		getDefaultValue: () => 30);
-
-	static readonly Option<bool> globalOptMeasured = new (
+	static readonly Option<string?> globalOptMeasured = new (
 		aliases: new[] { "--measured", "-m", "/m" },
 		description: "Set false to not show timing and performance data",
-		getDefaultValue: () => true);
+		getDefaultValue: () => "true");
 
 	static readonly Option<int> globalOptPort = new (
 		aliases: new [] { "--port", "-p", "/p" },
