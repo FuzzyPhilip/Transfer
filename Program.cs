@@ -4,8 +4,13 @@
 namespace Beinggs.Transfer;
 
 
-// see README.md for details
-partial class Program
+/// <summary>
+/// Implements a simple test data and file transfer command-line utility.
+/// </summary>
+/// <remarks>
+/// See the README.md file for details of operation.
+/// </remarks>
+public partial class Program
 {
 	/// <summary>
 	/// Defines the entry point for <see cref="Program"/>.
@@ -30,23 +35,21 @@ partial class Program
 				name: "send",
 				description: "Send a file or test data")
 			{
-				optRepeat,
-
 				(sendFileCommand = new (
 					name: "file",
 					description: "Send a file")
 				{
 					argFile,
 					optIncludeFileName,
-					cmdTo
+					cmdFileTo
 				}),
 				(sendTestCommand = new (
 					name: "test",
 					description: "Send test data")
 				{
-					optTestSize,
-					cmdTo
-				})
+					cmdTestTo
+				}),
+				cmdTestTo // implicit 'test' command
 			}),
 
 			(receiveCommand = new (
@@ -57,17 +60,16 @@ partial class Program
 					name: "file",
 					description: "Receive a file")
 				{
-					argFileName,
-					cmdFrom
+					argFileName, // this is a string?, so can't use argFile as that's a FileInfo?
+					cmdFileFrom
 				}),
 				(receiveTestCommand = new (
 					name: "test",
 					description: "Receive test data")
 				{
-					optMaxSize,
-					optMaxTime,
-					cmdFrom
-				})
+					cmdTestFrom
+				}),
+				cmdTestFrom // implicit 'test' command
 			})
 		};
 
@@ -81,20 +83,26 @@ partial class Program
 		receiveTestCommand.AddAlias ("t");
 
 		// ... add globals...
-		globalOptVerbosity.Arity = ArgumentArity.ZeroOrOne;
-		rootCommand.AddGlobalOption (globalOptVerbosity);
+		globalOptVerbosity.Arity = ArgumentArity.ZeroOrOne;	// verbosity with no value defaults to verbose
+		globalOptMeasured.Arity = ArgumentArity.ZeroOrOne;	// measured with no value defaults to measured
 
-		rootCommand.AddGlobalOption (globalOptTimeout);
+		rootCommand.AddGlobalOption (globalOptVerbosity);
 		rootCommand.AddGlobalOption (globalOptMeasured);
 		rootCommand.AddGlobalOption (globalOptPort);
 
 		// ... set handlers...
 		// rootCommand.SetHandler (SetLogLevel, verbosity); // GRR! This should be supported, at least for globals! :-/
-		cmdTo.SetHandler (ToCommand, globalOptVerbosity, globalOptTimeout, globalOptMeasured, globalOptPort, optRepeat,
-				argFile, optIncludeFileName, optTestSize, argRecipient);
+		cmdFileTo.SetHandler (ToFileCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
+				argFile, optIncludeFileName, argRecipient);
 
-		cmdFrom.SetHandler (FromCommand, globalOptVerbosity, globalOptTimeout, globalOptMeasured, globalOptPort,
-				argFileName, optMaxSize, optMaxTime, argSender);
+		cmdTestTo.SetHandler (ToTestCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
+				optTestSize, argRecipient);
+
+		cmdFileFrom.SetHandler (FromFileCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
+				argFileName, argSender);
+
+		cmdTestFrom.SetHandler (FromTestCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
+				optMaxSize, optMaxTime, argSender);
 
 		// ... and let the magic happen!
 		return await rootCommand.InvokeAsync (args);

@@ -1,5 +1,7 @@
 ﻿using System.CommandLine;
 
+using Beinggs.Transfer.Logging;
+
 
 namespace Beinggs.Transfer;
 
@@ -7,35 +9,47 @@ namespace Beinggs.Transfer;
 // command line definitions: Commands, Arguments and Options
 partial class Program
 {
-	#region Helpers
-
-	enum Verbosity
-	{
-		Quiet,
-		Minimal,
-		Normal,
-		Detailed,
-		Diagnostic
-	}
-
-	#endregion Helpers
-
 	#region Fields
 
-	// constants
+	/// <summary>
+	/// Defines the default received ffile name (if the <c>includeFileName</c> option isn't specified).
+	/// </summary>
 	public const string DefaultReceiveFileName = "transfer.dat";
+
+	/// <summary>
+	/// Defines the header key for the filename header, if provided.
+	/// </summary>
 	public const string FileNameHeader = "filename";
+
+	/// <summary>
+	/// Defines the 'anyone' string to specify sending/receiving to/from anyone.
+	/// </summary>
 	public const string Anyone = "anyone";
 
+	/// <summary>
+	/// Defines the minimum test size option value, in MB.
+	/// </summary>
 	public const int MinTestSize = 1; // MB
+
+	/// <summary>
+	/// Defines the maximum test size option value, in MB.
+	/// </summary>
 	public const int MaxTestSize = 1024; // MB
+
+	/// <summary>
+	/// Defines the default test size option value, in MB.
+	/// </summary>
 	public const int DefTestSize = 10; // MB
 
-	// globals
-	public static LogLevel LogLevel;
-	public static int Timeout;
-	public static bool Measured;
-	public static int Port;
+	/// <summary>
+	/// Indicates whether performance should be measured when receiving test data or a file.
+	/// </summary>
+	public static bool Measured { get; set; }
+
+	/// <summary>
+	/// Profides the port value to connect to or listen on.
+	/// </summary>
+	public static int Port { get; set; }
 
 	#endregion Fields
 
@@ -44,17 +58,12 @@ partial class Program
 	static readonly Option<Verbosity?> globalOptVerbosity = new (
 		aliases: new [] { "--verbosity", "-v", "/v" },
 		description: "Level of detail in output messages",
-		getDefaultValue: () => Verbosity.Detailed);
+		getDefaultValue: () => Verbosity.Normal);
 
-	static readonly Option<int> globalOptTimeout = new (
-		aliases: new[] { "--timeout", "-t", "/t" },
-		description: "Timeout in seconds for any send or receive operation, or 0 for no timeout",
-		getDefaultValue: () => 30);
-
-	static readonly Option<bool> globalOptMeasured = new (
+	static readonly Option<string?> globalOptMeasured = new (
 		aliases: new[] { "--measured", "-m", "/m" },
-		description: "Set false to not show timing and performance data",
-		getDefaultValue: () => true);
+		description: "Set false to hide timing and perf data",
+		getDefaultValue: () => "true");
 
 	static readonly Option<int> globalOptPort = new (
 		aliases: new [] { "--port", "-p", "/p" },
@@ -67,11 +76,11 @@ partial class Program
 
 	static readonly Option<bool> optRepeat = new (
 		aliases: new[] { "--repeat", "-r", "/r" },
-		description: "Set true to repeat send operation forever",
+		description: "Set true to repeatedly send",
 		getDefaultValue: () => false);
 
 	static readonly Argument<FileInfo?> argFile = new (
-		name: "file",
+		name: "fileName",
 		description: "The name of the file to send");
 
 	static readonly Option<bool> optIncludeFileName = new (
@@ -88,43 +97,61 @@ partial class Program
 		description: $"Test data size, in MB (between {MinTestSize} and {MaxTestSize})",
 		getDefaultValue: () => DefTestSize);
 
-	static readonly Command cmdTo = new (
+	static readonly Command cmdFileTo = new (
 		name: "to",
-		description: "Send a file or test data to a recipient")
+		description: "Specifies the recipient of the file data")
 	{
 		argRecipient
+	};
+
+	static readonly Command cmdTestTo = new (
+		name: "to",
+		description: "Specifies the recipient of the test data")
+	{
+		argRecipient,
+		optRepeat,
+		optTestSize
 	};
 
 	#endregion Send stuff
 
 	#region Receive stuff
 
-	static readonly Argument<string?> argFileName = new (
+	static readonly Argument<string?> argFileName = new ( // nullable type makes it optional, so default will kick in
 		name: "fileName",
 		description: "The name of the file to receive",
 		getDefaultValue: () => DefaultReceiveFileName);
 
 	static readonly Option<int> optMaxSize = new (
 		name: "--max-size",
-		description: "Sets the maximum amount of data to receive, in MB, " +
-				"or omit (or set to zero) to receive all sent data",
+		description: "Sets the maximum amount of test data to receive, in MB, " +
+				"or omit (or set to zero) to receive all test data sent",
 		getDefaultValue: () => 0);
 
 	static readonly Option<int> optMaxTime = new (
 		name: "--max-time",
-		description: "Sets the maximum amount of time to receive data for, in seconds, " +
-				"or omit (or set to zero) to receive all sent data",
+		description: "Sets the maximum amount of time to receive test data for, in seconds, " +
+				"or omit (or set to zero) to receive all test data sent",
 		getDefaultValue: () => 0);
 
 	static readonly Argument<string> argSender = new (
 		name: "sender",
 		description: "Sender machine or IP address");
 
-	static readonly Command cmdFrom = new (
+	static readonly Command cmdFileFrom = new (
 		name: "from",
-		description: "The sender of the file or test data")
+		description: "Specifies the sender of the file data")
 	{
 		argSender
+	};
+
+	static readonly Command cmdTestFrom = new (
+		name: "from",
+		description: "Specifies the sender of the test data")
+	{
+		argSender,
+		optMaxSize,
+		optMaxTime
 	};
 
 	#endregion Receive stuff
