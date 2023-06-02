@@ -19,8 +19,9 @@ public static class StringExtensions
 	/// <param name="s">This string.</param>
 	/// <param name="emptyDefault">The result if <paramref name="s"/> is <see langword="null"/> or empty.</param>
 	/// <returns>
-	/// <see langword="true"/> if <paramref name="s"/> smells truthy (TRUE, True, true, T, t, YES, Yes, yes, Y, y, or 1),
-	/// or <see langword="false"/> if <paramref name="s"/> smells falsy (the opposite to the truthy values).
+	/// <see langword="true"/> if <paramref name="s"/> smells truthy (TRUE, True, true, T, or t; YES, Yes, yes, Y,
+	/// or y; ON, On, or on; or 1), or <see langword="false"/> if <paramref name="s"/> smells falsy (the opposites
+	/// to the truthy values).
 	/// <para>
 	/// If <paramref name="s"/> is <see langword="null"/> or empty, the <paramref name="emptyDefault"/> value is returned.
 	/// </para>
@@ -31,9 +32,11 @@ public static class StringExtensions
 		{
 			"TRUE" or "True" or "true" or "T" or "t"
 				or "YES" or "Yes" or "yes" or "Y" or "y"
+				or "ON" or "On" or "on"
 				or "1" => true,
 			"FALSE" or "False" or "false" or "F" or "f"
 				or "NO" or "No" or "no" or "N" or "n"
+				or "OFF" or "Off" or "off"
 				or "0" => false,
 			"" or null => emptyDefault,
 			_ => throw new InvalidOperationException ($"Invalid boolean option '{s}'")

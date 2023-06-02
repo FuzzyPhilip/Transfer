@@ -36,12 +36,6 @@ public class Sender
 	/// <exception cref="InvalidOperationException">Thrown when an invalid parameter value is given.</exception>
 	public Task SendFileAsync (FileInfo file, bool includeFileName, string recipient)
 	{
-		if (file is null)
-			throw new InvalidOperationException ("A file name must be specified");
-
-		if (string.IsNullOrWhiteSpace (recipient))
-			throw new InvalidOperationException ("A recipient must be specified");
-
 		_file = file;
 		_includeFileName = includeFileName;
 
@@ -57,12 +51,6 @@ public class Sender
 	/// <exception cref="InvalidOperationException"></exception>
 	public Task SendTestAsync (int testSize, string recipient)
 	{
-		if (testSize is < 1 or > Program.MaxTestSize)
-		{
-			throw new InvalidOperationException (
-					$"Test size must be between {Program.MinTestSize} and {Program.MaxTestSize} (in MB)");
-		}
-
 		_testSize = testSize;
 
 		return Send (recipient);

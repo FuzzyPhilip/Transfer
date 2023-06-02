@@ -32,12 +32,6 @@ public class Receiver
 	/// <exception cref="InvalidOperationException">Thrown when an invalid parameter value is given.</exception>
 	public Task ReceiveFileAsync (FileInfo file, string sender)
 	{
-		if (file is null)
-			throw new InvalidOperationException ("A file name must be specified");
-
-		if (string.IsNullOrWhiteSpace (sender))
-			throw new InvalidOperationException ("A sender must be specified");
-
 		_file = file;
 
 		return Receive (sender);
@@ -52,12 +46,6 @@ public class Receiver
 	/// <exception cref="InvalidOperationException">Thrown when an invalid parameter value is given.</exception>
 	public Task ReceiveTestAsync (int maxSize, int maxTime, string sender)
 	{
-		if (maxSize is < 0)
-			throw new InvalidOperationException ("A zero or positive maximum size must be specified");
-
-		if (maxTime is < 0)
-			throw new InvalidOperationException ("A zero or positive maximum time must be specified");
-
 		_maxBytes = (ulong) maxSize * _mb; // max size is MB
 		_maxMs = maxTime * 1000; // max time is seconds
 
@@ -154,7 +142,9 @@ public class Receiver
 			}
 		}
 
-		var bytesConsumed = lineRead is null ? 0 : lineRead.ToUtf8Bytes().Length + 1; // + 1 for \n!
+		var bytesConsumed = lineRead is null ? 0 : lineRead.ToUtf8Bytes().Length +
+				fileName is null ? 0 : 1; // if we got a filename, allow for the extra '\n'
+
 		var output = _file.OpenWrite();
 
 		await output.WriteAsync (new ReadOnlyMemory<byte> (headerBytes, bytesConsumed, headerLen - bytesConsumed));

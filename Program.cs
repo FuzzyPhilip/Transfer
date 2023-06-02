@@ -35,23 +35,21 @@ public partial class Program
 				name: "send",
 				description: "Send a file or test data")
 			{
-				optRepeat,
-
 				(sendFileCommand = new (
 					name: "file",
 					description: "Send a file")
 				{
 					argFile,
 					optIncludeFileName,
-					cmdTo
+					cmdFileTo
 				}),
 				(sendTestCommand = new (
 					name: "test",
 					description: "Send test data")
 				{
-					optTestSize,
-					cmdTo
-				})
+					cmdTestTo
+				}),
+				cmdTestTo // implicit 'test' command
 			}),
 
 			(receiveCommand = new (
@@ -62,17 +60,16 @@ public partial class Program
 					name: "file",
 					description: "Receive a file")
 				{
-					argFileName,
-					cmdFrom
+					argFileName, // this is a string?, so can't use argFile as that's a FileInfo?
+					cmdFileFrom
 				}),
 				(receiveTestCommand = new (
 					name: "test",
 					description: "Receive test data")
 				{
-					optMaxSize,
-					optMaxTime,
-					cmdFrom
-				})
+					cmdTestFrom
+				}),
+				cmdTestFrom // implicit 'test' command
 			})
 		};
 
@@ -95,11 +92,17 @@ public partial class Program
 
 		// ... set handlers...
 		// rootCommand.SetHandler (SetLogLevel, verbosity); // GRR! This should be supported, at least for globals! :-/
-		cmdTo.SetHandler (ToCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
-				argFile, optIncludeFileName, optTestSize, argRecipient);
+		cmdFileTo.SetHandler (ToFileCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
+				argFile, optIncludeFileName, argRecipient);
 
-		cmdFrom.SetHandler (FromCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
-				argFileName, optMaxSize, optMaxTime, argSender);
+		cmdTestTo.SetHandler (ToTestCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
+				optTestSize, argRecipient);
+
+		cmdFileFrom.SetHandler (FromFileCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
+				argFileName, argSender);
+
+		cmdTestFrom.SetHandler (FromTestCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
+				optMaxSize, optMaxTime, argSender);
 
 		// ... and let the magic happen!
 		return await rootCommand.InvokeAsync (args);
