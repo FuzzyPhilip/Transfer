@@ -5,23 +5,12 @@ namespace Beinggs.Transfer;
 
 
 /// <summary>
-/// Transfers files or test data.
+/// Implements a simple test data and file transfer command-line utility.
 /// </summary>
 /// <remarks>
-/// Example syntax (implemented using <see cref="System.CommandLine"/> functionality):
-/// <code>
-/// transfer [--timeout=30] [--measured=true] send [--repeat=false] file fileName [--include-filename=true] to anyone
-/// transfer [--timeout=30] [--measured=true] send [--repeat=false] test [--size=10] to clientMachine
-/// transfer [--timeout=30] [--measured=true] receive file [fileName] from serverMachine
-/// transfer [--timeout=30] [--measured=true] receive test [--max-size=X] from serverMachine
-/// 
-/// where:
-///   [] indicates an optional option
-///   =value indicates the default value for an optional option
-///   {x || y} indicates either x or y must be present
-/// </code>
+/// See the README.md file for details of operation.
 /// </remarks>
-partial class Program
+public partial class Program
 {
 	/// <summary>
 	/// Defines the entry point for <see cref="Program"/>.
@@ -30,7 +19,7 @@ partial class Program
 	/// <returns></returns>
 	static async Task<int> Main (string[] args)
 	{
-		// as commands can't be declared with aliases, we have to declare them here and add aliases after <grr!>
+		// as commands can't be declared with aliases, we have to declare them here and add aliases later <grr!>
 		Command sendCommand;
 		Command sendFileCommand;
 		Command sendTestCommand;
@@ -46,23 +35,21 @@ partial class Program
 				name: "send",
 				description: "Send a file or test data")
 			{
-				repeat,
-
 				(sendFileCommand = new (
 					name: "file",
 					description: "Send a file")
 				{
-					file,
-					includeFileName,
-					toCommand
+					argFile,
+					optIncludeFileName,
+					cmdFileTo
 				}),
 				(sendTestCommand = new (
 					name: "test",
 					description: "Send test data")
 				{
-					testSize,
-					toCommand
-				})
+					cmdTestTo
+				}),
+				cmdTestTo // implicit 'test' command
 			}),
 
 			(receiveCommand = new (
@@ -73,16 +60,16 @@ partial class Program
 					name: "file",
 					description: "Receive a file")
 				{
-					fileName,
-					fromCommand
+					argFileName, // this is a string?, so can't use argFile as that's a FileInfo?
+					cmdFileFrom
 				}),
 				(receiveTestCommand = new (
 					name: "test",
 					description: "Receive test data")
 				{
-					maxSize,
-					fromCommand
-				})
+					cmdTestFrom
+				}),
+				cmdTestFrom // implicit 'test' command
 			})
 		};
 
@@ -96,14 +83,28 @@ partial class Program
 		receiveTestCommand.AddAlias ("t");
 
 		// ... add globals...
-		rootCommand.AddGlobalOption (timeout);
-		rootCommand.AddGlobalOption (measured);
+		globalOptVerbosity.Arity = ArgumentArity.ZeroOrOne;	// verbosity with no value defaults to verbose
+		globalOptMeasured.Arity = ArgumentArity.ZeroOrOne;	// measured with no value defaults to measured
+
+		rootCommand.AddGlobalOption (globalOptVerbosity);
+		rootCommand.AddGlobalOption (globalOptMeasured);
+		rootCommand.AddGlobalOption (globalOptPort);
 
 		// ... set handlers...
-		toCommand.SetHandler (ToCommand, timeout, measured, repeat, file, includeFileName, testSize, recipient);
-		fromCommand.SetHandler (FromCommand, timeout, measured, fileName, maxSize, sender);
+		// rootCommand.SetHandler (SetLogLevel, verbosity); // GRR! This should be supported, at least for globals! :-/
+		cmdFileTo.SetHandler (ToFileCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
+				argFile, optIncludeFileName, argRecipient);
 
-		// ... and let the magic happen here!
+		cmdTestTo.SetHandler (ToTestCommand, globalOptVerbosity, globalOptMeasured, globalOptPort, optRepeat,
+				optTestSize, argRecipient);
+
+		cmdFileFrom.SetHandler (FromFileCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
+				argFileName, argSender);
+
+		cmdTestFrom.SetHandler (FromTestCommand, globalOptVerbosity, globalOptMeasured, globalOptPort,
+				optMaxSize, optMaxTime, argSender);
+
+		// ... and let the magic happen!
 		return await rootCommand.InvokeAsync (args);
 	}
 }
