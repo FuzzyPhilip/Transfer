@@ -42,14 +42,14 @@ public static class StreamExtensions
 
 		if (bufferSize < 1)
 			throw new ArgumentOutOfRangeException (nameof (bufferSize), bufferSize,
-					"buffer size must be positive");
+					"Buffer size must be positive");
 
 		if (!destination.CanWrite)
-			throw new InvalidOperationException ("destination stream is not writeable");
+			throw new InvalidOperationException ("Destination stream is not writeable");
 
 		var totalBytes = 0UL;
+		var readTicks = 0L;
 		var writeTicks = 0L;
-		var readMs = 0L;
 
 		var buffer = ArrayPool<byte>.Shared.Rent (bufferSize);
 
@@ -70,7 +70,9 @@ public static class StreamExtensions
 					? buffer.Length
 					: Math.Min ((int) (maxBytes - (ulong) bytesRead), buffer.Length);
 
+				readTimer.Restart();
 				bytesRead = await source.ReadAsync (new Memory<byte> (buffer, 0, bytesToRead), cancellationToken);
+				readTicks += readTimer.ElapsedTicks;
 
 				if (bytesRead > 0)
 				{
@@ -82,13 +84,11 @@ public static class StreamExtensions
 					await destination.WriteAsync (new ReadOnlyMemory<byte> (buffer, 0, bytesRead), cancellationToken);
 					writeTicks += writeTimer.ElapsedTicks;
 
-					readMs = toMilliseconds (readTimer.ElapsedTicks - writeTicks);
-
 					if (DateTime.Now > lastProgress + progressInterval)
 					{
 						lastProgress = DateTime.Now;
 
-						progress?.Invoke (readMs, toMilliseconds (writeTicks), totalBytes);
+						progress?.Invoke (toMilliseconds (readTicks), toMilliseconds (writeTicks), totalBytes);
 					}
 				}
 			} while (bytesRead > 0 &&
@@ -100,7 +100,7 @@ public static class StreamExtensions
 			ArrayPool<byte>.Shared.Return (buffer);
 		}
 
-		return ( readMs, toMilliseconds (writeTicks), totalBytes );
+		return ( toMilliseconds (readTicks), toMilliseconds (writeTicks), totalBytes );
 
 		static double elapsedMs (DateTime startTime)
 			=> (DateTime.Now - startTime).TotalMilliseconds;

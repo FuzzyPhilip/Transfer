@@ -7,10 +7,10 @@ This command line utility transfers files or test data between two machines.
 Example syntax (implemented using `System.CommandLine` functionality):
 
 ``` shell
-transfer [--timeout=30] [--measured=true] send [--repeat=false] file fileName [--include-filename=true] to anyone
-transfer [--timeout=30] [--measured=true] send [--repeat=false] test [--size=10] to clientMachine
-transfer [--timeout=30] [--measured=true] receive file [fileName] from serverMachine
-transfer [--timeout=30] [--measured=true] receive test [--max-size=X] from serverMachine
+transfer [--measured[=true]] send file fileName [--include-filename=true] to anyone [--repeat=false]
+transfer [--measured[=true]] send [test] to clientMachine [--size=10] [--repeat=false]
+transfer [--measured[=true]] receive file [fileName] from serverMachine
+transfer [--measured[=true]] receive [test] [--max-size=X] from serverMachine
 ```
 
 *Where:*
@@ -20,17 +20,31 @@ transfer [--timeout=30] [--measured=true] receive test [--max-size=X] from serve
 
 ### Options
 
+This section provides an overview of options; run with `-h` to see more details.
+
+#### Global Options
+
+`-h`, `/h`, `-?`, `/?`, `--help`: Shows global or command-specific help
+
+`-v`, `--verbosity`: Specifies the level of detail output to the console
+
 `-m`, `/m`, `--measured`: Writes performance and timing stats to the console
+
+`-p`, `/p`, `--port`: Specifies the port to use for sending or receiving
+
+#### Send Options
 
 `-r`, `/r`, `--repeat`: Repeats file sending (by default the utility quits after sending the file or test data)
 
 `-f`, `/f`, `--include-filename`: Includes the filename as a 'header' at the start of the file data (see below)
 
-`-s`, `/s`, `--size`: Specifies the size of test data in MB, defaulting to 10
+`-s`, `/s`, `--size`: Specifies the size of test data to send in MB, defaulting to 10, up to 10240 (10 GB)
+
+#### Receive Options
 
 `-m`, `/m`, `--max-size`: Specifies the maximum size of data to recieve, in MB
 
-`-h`, `/h`, `-?`, `/?`, `--help`: Shows global or command-specific help
+`-m`, `/m`, `--max-time`: Specifies the maximum time to wait for data to be received, in seconds
 
 `--version`: Shows the version number
 
@@ -45,11 +59,13 @@ transfer receive test -h // shows help for receiving test data and applicable op
 etc.
 ```
 
+The `test` command is implicit, so `transfer send to anyone` will send test data.
+
 A `send` command will wait for a connection and then send the specified file or test data once a
 valid client has connected.
 
-A recipient can be a specific client machine name or IP address or the name `anyone`, in which
-case connects are accepted from any client.
+A recipient can be a specific client machine name or IP address, or the name `anyone` (aliases:
+`any` or `a`), in which case connects are accepted from any client.
 
 The `--include-filename` option for the `send file` command, which is on by default, prepends the
 'header' string `filename:name\n`, where `name` is the file's name, which is terminiated with a

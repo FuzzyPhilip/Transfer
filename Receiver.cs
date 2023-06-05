@@ -16,10 +16,6 @@ public class Receiver
 {
 	const int _headerSize = 1024;
 
-	const int _kb = 1024;
-	const int _mb = _kb * 1024;
-	const int _gb = _mb * 1024;
-
 	FileInfo _file = default!;
 	ulong _maxBytes;
 	int _maxMs;
@@ -46,7 +42,7 @@ public class Receiver
 	/// <exception cref="InvalidOperationException">Thrown when an invalid parameter value is given.</exception>
 	public Task ReceiveTestAsync (int maxSize, int maxTime, string sender)
 	{
-		_maxBytes = (ulong) maxSize * _mb; // max size is MB
+		_maxBytes = (ulong) maxSize * Size.Mb; // max size is MB
 		_maxMs = maxTime * 1000; // max time is seconds
 
 		return Receive (sender);
@@ -54,67 +50,42 @@ public class Receiver
 
 	async Task Receive (string sender)
 	{
-		try
-		{
-			var logLevel = Program.Measured ? LogLevel.Quiet : LogLevel.Verbose;
+		var logLevel = Program.Measured ? LogLevel.Quiet : LogLevel.Verbose;
+		var showWrite = hasFile (_file);
 
-			using TcpClient client = new (sender, Program.Port);
+		using TcpClient client = new (sender, Program.Port);
+		using var input = client.GetStream();
+		using var output = await GetOutputStream (input);
 
-			$"\nConnected to {sender}:{Program.Port}; receiving data...".Log (LogLevel.Quiet);
+		$"\nConnected to {sender}:{Program.Port}; receiving data...".Log (LogLevel.Quiet);
 
-			using var input = client.GetStream();
-			using var output = await GetOutputStream (input);
+		// copy the stream to output and time it
+		var ( readMs, writeMs, bytes ) = await input.CopyToWithTimingAsync (output, _maxBytes, _maxMs,
+				(readMs, writeMs, bytes) =>
+					Humanise (readMs, writeMs, bytes, showWrite).Log (logLevel, "        \r"));
 
-			// copy the stream to output and time it
-			var ( readMs, writeMs, bytes ) = await input.CopyToWithTimingAsync (output, _maxBytes, _maxMs,
-					(readMs, writeMs, bytes) => Humanise (readMs, writeMs, bytes).Log (logLevel, "        \r"));
+		var receivedMsg = Humanise (readMs, writeMs, bytes, showWrite, "Total of ");
 
-			var receivedMsg = Humanise (readMs, writeMs, bytes, "Total of ");
+		if (showWrite)
+			receivedMsg += $" into {_file.Name}";
 
-			if (_file is not null)
-				receivedMsg += $" into {_file.Name}";
+		receivedMsg.Log (logLevel);
 
-			receivedMsg.Log (logLevel);
+		"Receive complete.".Log (LogLevel.Quiet);
 
-			"Receive complete.".Log (LogLevel.Quiet);
-		}
-		catch (Exception ex)
-		{
-			$"Failed to receive data due to: {ex.Message}".Log (LogLevel.Error);
-		}
+		// helper
+		static bool hasFile ([NotNullWhen (true)] FileInfo file)
+			=> file is not null;
 	}
 
-	static string Humanise (long readMs, long writeMs, float bytes, string? prefix = null)
+	static string Humanise (long readMs, long writeMs, float bytes, bool showWrite, string? prefix = null)
 	{
 		var bits = bytes * 8f;
 		var readSecs = readMs / 1000f;
 		var writeSecs = writeMs / 1000f;
 
-		return $"{prefix}{size (bytes)} read in {time (readSecs)} @ {speed (bits / readSecs)}, " +
-				$"written in {time (writeSecs)} @ {speed (bits / writeSecs)}";
-
-		static string size (float bytes)
-			=> bytes switch
-			{
-				< _kb => $"{bytes} byte(s)",
-				< _mb => $"{bytes / _kb:F3} KB",
-				< _gb => $"{bytes / _mb:F3} MB",
-				_	  => $"{bytes / _gb:F3} GB"
-			};
-
-		static string time (float secs)
-			=> secs < 1
-				? $"{secs * 1000} ms"
-				: $"{secs:F3} sec";
-
-		static string speed (float bps)
-			=> bps switch
-			{
-				< _kb => $"{bps:F2} bps",
-				< _mb => $"{bps / _kb:F2} Kbps",
-				< _gb => $"{bps / _mb:F2} Mbps",
-				_	  => $"{bps / _gb:F2} Gbps"
-			};
+		return $"{prefix}{bytes.HumanSize()} read in {readSecs.HumanTime()} @ {(bits / readSecs).HumanSpeed()}" +
+				(showWrite ? $", written in {writeSecs.HumanTime()} @ {(bits / writeSecs).HumanSpeed()}" : "");
 	}
 
 	async Task<Stream> GetOutputStream (Stream input)
