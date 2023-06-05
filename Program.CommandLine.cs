@@ -24,7 +24,7 @@ partial class Program
 	/// <summary>
 	/// Defines the 'anyone' string to specify sending/receiving to/from anyone.
 	/// </summary>
-	public const string Anyone = "anyone";
+	public static readonly string[] Anyone = { "anyone", "any", "a" };
 
 	/// <summary>
 	/// Defines the minimum test size option value, in MB.
@@ -34,7 +34,7 @@ partial class Program
 	/// <summary>
 	/// Defines the maximum test size option value, in MB.
 	/// </summary>
-	public const int MaxTestSize = 1024; // MB
+	public const int MaxTestSize = 10240; // MB
 
 	/// <summary>
 	/// Defines the default test size option value, in MB.
@@ -89,19 +89,20 @@ partial class Program
 		getDefaultValue: () => true);
 
 	static readonly Argument<string> argRecipient = new (
-			name: "recipient",
-			description: $"Recipient machine, IP address, or \"{Anyone}\" to allow any remote client to connect");
+		name: "recipient",
+		description: $"Recipient machine, IP address, or {GetAnyoneList()} to allow any remote client to connect");
 
 	static readonly Option<int> optTestSize = new (
 		aliases: new[] { "--size", "-s", "/s" },
-		description: $"Test data size, in MB (between {MinTestSize} and {MaxTestSize})",
+		description: $"Test data size, in MB, between {MinTestSize} and {MaxTestSize}",
 		getDefaultValue: () => DefTestSize);
 
 	static readonly Command cmdFileTo = new (
 		name: "to",
 		description: "Specifies the recipient of the file data")
 	{
-		argRecipient
+		argRecipient,
+		optRepeat
 	};
 
 	static readonly Command cmdTestTo = new (
@@ -113,6 +114,16 @@ partial class Program
 		optTestSize
 	};
 
+	static string GetAnyoneList()
+	{
+		var s = $"'{Anyone [0]}' (";
+		for (var i = 0; ++i < Anyone.Length; )
+			s += $"or '{Anyone [i]}'" +
+					(i < Anyone.Length - 1 ? ", " : ")");
+
+		return s;
+	}
+
 	#endregion Send stuff
 
 	#region Receive stuff
@@ -123,13 +134,13 @@ partial class Program
 		getDefaultValue: () => DefaultReceiveFileName);
 
 	static readonly Option<int> optMaxSize = new (
-		name: "--max-size",
+		aliases: new[] { "--max-size", "-s", "/s" },
 		description: "Sets the maximum amount of test data to receive, in MB, " +
 				"or omit (or set to zero) to receive all test data sent",
 		getDefaultValue: () => 0);
 
 	static readonly Option<int> optMaxTime = new (
-		name: "--max-time",
+		aliases: new[] { "--max-time", "-t", "/t" },
 		description: "Sets the maximum amount of time to receive test data for, in seconds, " +
 				"or omit (or set to zero) to receive all test data sent",
 		getDefaultValue: () => 0);
