@@ -71,7 +71,7 @@ public class Sender
 				var address = client.GetClientAddress();
 
 				// if it's not who we're expecting, skip it
-				if (recipient != Program.Anyone && address != recipient)
+				if (!Program.Anyone.Contains (recipient) && address != recipient)
 					$"\nConnection attempted from invalid client ({address}); dropped".Log (LogLevel.Warning);
 				else // hand it off and wait for next, if repeating
 					await SendData (client, address);
@@ -80,27 +80,20 @@ public class Sender
 		}
 		catch (Exception ex)
 		{
-			$"Failed to send data due to: {ex.Message}".Log (LogLevel.Error);
+			$"Failed to send data due to:{Environment.NewLine}{ex.Message}".Log (LogLevel.Error);
 		}
 	}
 
 	async Task SendData (TcpClient client, string address)
 	{
-		try
-		{
-			$"\nConnected to {address}:{Program.Port}; sending data...".Log (LogLevel.Quiet);
+		$"\nConnected to {address}:{Program.Port}; sending data...".Log (LogLevel.Quiet);
 
-			using var output = client.GetStream();
-			using var input = await GetInputStream (output);
+		using var output = client.GetStream();
+		using var input = await GetInputStream (output);
 
-			await input.CopyToAsync (output);
+		await input.CopyToAsync (output);
 
-			$"Send complete.".Log (LogLevel.Quiet);
-		}
-		catch (Exception ex)
-		{
-			$"Failed to send data due to: {ex.Message}".Log (LogLevel.Error);
-		}
+		$"Send to {address}:{Program.Port} complete.".Log (LogLevel.Quiet);
 	}
 
 	async Task<Stream> GetInputStream (Stream output)
@@ -115,16 +108,9 @@ public class Sender
 		}
 		else if (_testSize > 0)
 		{
-			byte[] testData;
-			var rnd = new Random ((int) DateTime.Now.Ticks);
-			var dataSize = _testSize * 1024 * 1024;
+			var dataSize = (long) _testSize * Size.Mb;
 
-			testData = new byte [dataSize];
-
-			for (var i = 0; i < dataSize; i++)
-				testData [i] = (byte) rnd.Next (33, 127);
-
-			return new MemoryStream (testData);
+			return new ReadOnlyTestStream (dataSize);
 		}
 
 		throw new InvalidOperationException ("Either a file or test data size must be specified");
