@@ -1,26 +1,49 @@
 # Transfer Utility
 
-This command line utility transfers files or test data between two machines.
+## Overview
+
+This command line utility, `bx`, transfers files or test data between two machines. It was built with .NET 7 and
+is a simple example of sending and receiving data at the TCP level using the following .NET 7 classes:
+
+- [`System.CommandLine`](https://learn.microsoft.com/dotnet/standard/commandline/)
+- [`TcpClient` and `TcpListener`](https://learn.microsoft.com/dotnet/fundamentals/networking/sockets/tcp-classes)
+- [`ArrayPool<T>`](https://learn.microsoft.com/dotnet/api/system.buffers.arraypool-1)
+- [`Memory<T>`](https://learn.microsoft.com/dotnet/api/system.memory-1)
+
+It includes an instrumeted version of
+[`Stream.CopyToAsync()`](https://learn.microsoft.com/dotnet/api/system.io.stream.copytoasync), called
+[`CopyToWithTimingAsync()`](https://github.com/FuzzyPhilip/Transfer/blob/main/Extensions/StreamExtensions.cs#L30),
+which tracks the read time and write time of the source and destination streams respectively, using
+[`Stopwatch`](https://learn.microsoft.com/dotnet/api/system.diagnostics.stopwatch) timers for the best possible
+accuracy.
+
+## Releases
+
+The following builds can be found under Releases:
+
+- Windows x64
+- Linux x64
+- OSX Arm64 (currently untested but presumed working because .NET is awesomely multi-platform!)
 
 ## Syntax
 
 Example syntax (implemented using `System.CommandLine` functionality):
 
 ``` shell
-transfer [--measured[=true]] send file fileName [--include-filename=true] to anyone [--repeat=false]
-transfer [--measured[=true]] send [test] to clientMachine [--size=10] [--repeat=false]
-transfer [--measured[=true]] receive file [fileName] from serverMachine
-transfer [--measured[=true]] receive [test] [--max-size=X] from serverMachine
+bx [--measured[=true]] send file fileName [--include-filename=true] to anyone [--repeat=false]
+bx [--measured[=true]] send [test] to clientMachine [--size=10] [--repeat=false]
+bx [--measured[=true]] receive file [fileName] from serverMachine
+bx [--measured[=true]] receive [test] [--max-size=X] from serverMachine
 ```
 
 *Where:*
 
 - `[]` indicates an optional command-line option
-- `=value` indicates the default value for an optional command-line option
+- `[=value]` indicates the default value for a command-line option
 
 ### Options
 
-This section provides an overview of options; run with `-h` to see more details.
+This section provides an overview of options; run `bx -h` or `bx {command} -h` to see more details.
 
 #### Global Options
 
@@ -53,13 +76,13 @@ This section provides an overview of options; run with `-h` to see more details.
 Use `-h` or `/h` to get help for specific commands, e.g.:
 
 ``` shell
-transfer -h  // shows general help
-transfer send -h // shows help for the send command, listing its sub-commands and applicable options
-transfer receive test -h // shows help for receiving test data and applicable options
+bx -h [shows general help]
+bx send -h [shows help for the send command, listing its sub-commands and applicable options]
+bx receive test -h [shows help for receiving test data and applicable options]
 etc.
 ```
 
-The `test` command is implicit, so `transfer send to anyone` will send test data.
+The `test` command is implicit, so `bx send to anyone` will send test data.
 
 A `send` command will wait for a connection and then send the specified file or test data once a
 valid client has connected.
@@ -74,4 +97,4 @@ newline. The `filename` header uses UTF8 encoding.
 The `receive file` command looks for the `filename` header in the incoming file data and
 automatically creates the file (if it doesn't already exist) with that name. If the incoming file
 data doesn't start with the `filename` header the received data will be saved in the file named
-`transfer.dat` in the current directory.
+`bx.dat` in the current directory.
